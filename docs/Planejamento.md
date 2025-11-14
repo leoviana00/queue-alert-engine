@@ -49,7 +49,7 @@ Monitorar tópicos Kafka em tempo real, avaliar o volume e o padrão de consumo 
 > NOTE!
 > A adição de novos canais exige apenas criar uma nova implementação de AlertService.
 
-## 5. Estrutura Modular e Extensível
+🔹 5. Estrutura Modular e Extensível
 
 Arquitetura limpa dividida em camadas:
 
