@@ -8,7 +8,7 @@ O Queue Alert Engine é um serviço de monitoramento de filas baseado em Kafka, 
 
 Monitorar tópicos Kafka em tempo real, avaliar o volume e o padrão de consumo das mensagens e emitir alertas automáticos quando uma fila apresenta problemas — tudo de forma configurável, extensível e fácil de operar.
 
-## 📦 Funcionalidades Atuais
+## 📦 Funcionalidades 
 
 🔹 1. Consumo de Tópicos Kafka
 
