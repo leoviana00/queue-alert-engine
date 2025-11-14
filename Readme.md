@@ -1,7 +1,7 @@
 ## 📦 queue-alert-engine
 
 `queue-alert-engine` é um sistema criado em Spring Boot para realizar monitoramento de filas Kafka, detectar anomalias e possibilitar o disparo de alertas automáticos (via Telegram, Teams, e-mail etc).
-É um projeto simples, didático e extensível — ideal para estudos, PoCs e práticas modernas de DevOps/Observability.
+É um projeto simples, didático e extensível, ideal para estudos, PoCs e práticas modernas de DevOps/Observability.
 
 ## 📌 Planejamento
 
