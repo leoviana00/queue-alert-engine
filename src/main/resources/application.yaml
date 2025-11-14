@@ -1,0 +1,11 @@
+
+spring:
+  application:
+    name: queue-alert-engine
+
+logging:
+  level:
+    root: INFO
+    io:
+      viana:
+        queue_alert_engine: INFO
