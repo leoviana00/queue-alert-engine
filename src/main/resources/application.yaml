@@ -1,11 +1,41 @@
-
 spring:
   application:
     name: queue-alert-engine
 
-logging:
-  level:
-    root: INFO
-    io:
-      viana:
-        queue_alert_engine: INFO
+kafka:
+  bootstrap-servers: localhost:9092
+
+  consumer:
+    group-id: queue-monitor-group
+    auto-offset-reset: earliest
+    enable-auto-commit: true
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    concurrency: 3
+    poll-timeout: 3000
+
+  listener:
+    ack-mode: record
+
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    acks: all
+    retries: 3
+    batch-size: 16384
+    linger-ms: 1
+    buffer-memory: 33554432
+    topic: queue-monitor-state
+
+  alert-rules:
+    - topic: queue-monitor-orders
+      pending-threshold: 100
+    - topic: queue-monitor-payments
+      pending-threshold: 50
+    - topic: queue-monitor-shipments
+      pending-threshold: 200
+
+# Pensar....
+# Se o lag ficar acima do máximo permitido, dispara alerta
+# Se o lag continuar subindo por x minutos, dispara alerta
+# Se cair de volta ao normal, pode gerar um resolved alert (opcional)
