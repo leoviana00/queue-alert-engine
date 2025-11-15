@@ -1,81 +1,95 @@
 package io.viana.queue_alert_engine.service;
 
-import lombok.Getter;
+import io.viana.queue_alert_engine.config.AlertsProperties;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.common.TopicPartition;
 import org.springframework.stereotype.Service;
 
-import io.viana.queue_alert_engine.config.KafkaProperties;
-
-import java.util.List;
-import java.util.Map;
+import jakarta.annotation.PostConstruct;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class QueueOffsetTracker {
 
-    @Getter
-    private final Map<String, Long> topicPendingMessages = new ConcurrentHashMap<>();
-
-    @Getter
-    private final List<String> monitoredTopics;
-
-    private final String consumerGroupId;
-
-    public QueueOffsetTracker(KafkaProperties kafkaProperties) {
-
-        this.monitoredTopics = kafkaProperties.getAlertRules()
-                .stream()
-                .map(rule -> rule.topic())
-                .distinct() // evita duplicados
-                .toList();
-
-        this.consumerGroupId = kafkaProperties.getConsumer().getGroupId();
-
-        monitoredTopics.forEach(topic -> topicPendingMessages.put(topic, 0L));
-
-        log.info("📝 Tópicos monitorados inicializados ({}): {}", monitoredTopics.size(), monitoredTopics);
-        log.info("🔐 Consumer Group: {}", consumerGroupId);
-    }
+    private final AlertsProperties alertsProperties;
+    private final AdminClient adminClient;
 
     /**
-     * Recebido pelo listener dinâmico via MethodKafkaListenerEndpoint.
+     * Partições monitoradas por groupId:
+     * group -> [TopicPartition...]
      */
-    public void onMessage(ConsumerRecord<String, String> record) {
-
-        // Só processa tópicos monitorados (segurança extra)
-        if (!topicPendingMessages.containsKey(record.topic())) {
-            log.warn("⚠️ Mensagem recebida de tópico NÃO monitorado: {}", record.topic());
-            return;
-        }
-
-        topicPendingMessages.merge(record.topic(), 1L, Long::sum);
-
-        if (log.isDebugEnabled()) {
-            log.debug("📥 [{}] +1 mensagem pendente | Novo total={}", record.topic(),
-                    topicPendingMessages.get(record.topic()));
-        }
-    }
+    private final Map<String, List<TopicPartition>> monitoredPartitions = new ConcurrentHashMap<>();
 
     /**
-     * Decrementa o número de mensagens pendentes de um tópico monitorado.
-     * Nunca deixa o valor negativo.
+     * Offsets consumidos por groupId:
+     * group -> (TopicPartition -> offset)
      */
-    public void decrementPending(String topic, long count) {
+    private final Map<String, Map<TopicPartition, Long>> consumedOffsets = new ConcurrentHashMap<>();
 
-        if (!topicPendingMessages.containsKey(topic)) {
-            log.warn("⚠️ Tentativa de decrementar tópico não monitorado: {}", topic);
-            return;
-        }
+    @PostConstruct
+    public void init() {
+        alertsProperties.getGroups().forEach(group -> {
 
-        topicPendingMessages.compute(topic, (t, oldVal) -> {
-            if (oldVal == null) return 0L;
+            String groupId = group.getGroupId();
 
-            long updated = oldVal - count;
-            return Math.max(0, updated);
+            List<TopicPartition> partitions = group.getRules().stream()
+                    .map(r -> new TopicPartition(r.topic(), r.partition()))
+                    .collect(Collectors.toList());
+
+            monitoredPartitions.put(groupId, partitions);
+            consumedOffsets.put(groupId, new ConcurrentHashMap<>());
+
+            log.info("📝 Grupo monitorado: {}", groupId);
+            log.info("📝 Partições monitoradas: {}", partitions);
         });
 
-        log.debug("📉 [{}] -{} mensagens | Total={}", topic, count, topicPendingMessages.get(topic));
+        // Atualiza todos os grupos no startup
+        alertsProperties.getGroups()
+                .forEach(g -> updateConsumedOffsets(g.getGroupId()));
+    }
+
+    /**
+     * Atualiza offsets consumidos do groupId informado.
+     */
+    public void updateConsumedOffsets(String groupId) {
+        try {
+            ListConsumerGroupOffsetsResult result = adminClient.listConsumerGroupOffsets(groupId);
+
+            Map<TopicPartition, Long> offsets = result.partitionsToOffsetAndMetadata().get()
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            e -> e.getValue().offset()
+                    ));
+
+            Map<TopicPartition, Long> groupOffsets = consumedOffsets.get(groupId);
+
+            monitoredPartitions.getOrDefault(groupId, List.of())
+                    .forEach(tp -> groupOffsets.put(tp, offsets.getOrDefault(tp, 0L)));
+
+            log.debug("🔎 Offsets atualizados para group {} → {}", groupId, groupOffsets);
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao atualizar offsets consumidos para group {}: {}", groupId, e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * Obtém o último offset consumido para um topic/partition dentro do groupId.
+     */
+    public long getLastConsumedOffset(String groupId, String topic, int partition) {
+        Map<TopicPartition, Long> groupOffsets = consumedOffsets.get(groupId);
+        if (groupOffsets == null) return 0;
+
+        return groupOffsets.getOrDefault(new TopicPartition(topic, partition), 0L);
     }
 }

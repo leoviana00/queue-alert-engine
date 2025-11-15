@@ -21,20 +21,38 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # LISTENERS
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-    command: >
+
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kafka-topics --bootstrap-server kafka:29092 --list > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  topic-init:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: >
       sh -c "
-        /etc/confluent/docker/run &
-        sleep 10;
-        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-orders --partitions 1 --replication-factor 1;
-        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-payments --partitions 1 --replication-factor 1;
-        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-shipments --partitions 1 --replication-factor 1;
-        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-state --partitions 1 --replication-factor 1;
-        wait
+        echo '⏳ Aguardando Kafka estar pronto para criar tópicos...';
+        sleep 3;
+
+        kafka-topics --bootstrap-server kafka:29092 --create --topic queue-monitor-orders --partitions 1 --replication-factor 1 || true;
+        kafka-topics --bootstrap-server kafka:29092 --create --topic queue-monitor-payments --partitions 1 --replication-factor 1 || true;
+        kafka-topics --bootstrap-server kafka:29092 --create --topic queue-monitor-shipments --partitions 1 --replication-factor 1 || true;
+
+        echo '✔ Tópicos criados';
       "
 
   kafkaui:
@@ -53,27 +71,39 @@ services:
     image: edenhill/kcat:1.7.0
     container_name: local_producer
     depends_on:
-      - kafka
+      topic-init:
+        condition: service_completed_successfully
     entrypoint: >
-      sh -c "while true;
+      sh -c "
+        while true;
         do
           for topic in queue-monitor-orders queue-monitor-payments queue-monitor-shipments;
           do
             num=$$(shuf -i 1-99999 -n 1);
-            printf '{\"msg\":\"$$topic - %s\"}' \"$$num\" \
+            printf '{\"msg\":\"%s-%s\"}' \"$$topic\" \"$$num\" \
               | kcat -P -b kafka:29092 -t $$topic;
           done;
           sleep 1;
-        done"
+        done
+      "
 
   consumer:
     image: edenhill/kcat:1.7.0
     container_name: local_consumer
     depends_on:
-      - kafka
+      topic-init:
+        condition: service_completed_successfully
     entrypoint: >
-      sh -c "for topic in queue-monitor-orders queue-monitor-payments queue-monitor-shipments;
-        do
-          kcat -C -b kafka:29092 -t $$topic -o beginning &
+      sh -c "
+        echo '⏳ Aguardando Kafka...';
+        until kcat -L -b kafka:29092 > /dev/null 2>&1; do
+          sleep 1;
         done;
-        wait"
+
+        echo '✔ Kafka disponível, iniciando consumer';
+
+        kcat -C -b kafka:29092 -G consumer-group-app -o beginning \
+          queue-monitor-orders \
+          queue-monitor-payments \
+          queue-monitor-shipments
+      "
