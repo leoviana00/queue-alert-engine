@@ -1,11 +1,10 @@
 package io.viana.queue_alert_engine.listener;
 
+import io.viana.queue_alert_engine.config.KafkaProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-
-import io.viana.queue_alert_engine.config.KafkaProperties;
 
 @Slf4j
 @Component
@@ -15,13 +14,16 @@ public class QueueListener {
     private final KafkaProperties kafkaProperties;
 
     /**
-     * Consumidor genérico usando tópico e grupo do KafkaProperties
+     * Consumidor do tópico de estado gerado pelo LagCheckerService
      */
     @KafkaListener(
-            topics = "#{@kafkaProperties.producer.topic}", // pega do YAML
+            topics = "#{@kafkaProperties.producer.stateTopic}",
             groupId = "#{@kafkaProperties.consumer.groupId}"
     )
     public void consume(String message) {
-        log.info("📥 Mensagem recebida do tópico '{}': {}", kafkaProperties.getProducer().getTopic(), message);
+        log.info("📥 Estado recebido do tópico '{}': {}",
+                kafkaProperties.getProducer().getStateTopic(),
+                message
+        );
     }
 }
