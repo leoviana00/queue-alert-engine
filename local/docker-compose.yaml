@@ -1,16 +1,19 @@
-version: '3.9'
+version: '3.8'
 
 services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
+    container_name: local_zookeeper
     ports:
       - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    container_name: local_kafka
     depends_on:
       - zookeeper
     ports:
@@ -18,32 +21,59 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    command: >
+      sh -c "
+        /etc/confluent/docker/run &
+        sleep 10;
+        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-orders --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-payments --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-shipments --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server localhost:9092 --create --topic queue-monitor-state --partitions 1 --replication-factor 1;
+        wait
+      "
 
   kafkaui:
     image: provectuslabs/kafka-ui:latest
+    container_name: local_kafkaui
+    depends_on:
+      - kafka
     ports:
-      - "8081:8080"
+      - "8085:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
   producer:
     image: edenhill/kcat:1.7.0
+    container_name: local_producer
     depends_on:
       - kafka
     entrypoint: >
       sh -c "while true;
-             do echo '{\"msg\":\"teste - $RANDOM\"}' |
-             kcat -P -b kafka:29092 -t test-topic;
-             sleep 1;
-             done"
+        do
+          for topic in queue-monitor-orders queue-monitor-payments queue-monitor-shipments;
+          do
+            num=$$(shuf -i 1-99999 -n 1);
+            printf '{\"msg\":\"$$topic - %s\"}' \"$$num\" \
+              | kcat -P -b kafka:29092 -t $$topic;
+          done;
+          sleep 1;
+        done"
 
   consumer:
     image: edenhill/kcat:1.7.0
+    container_name: local_consumer
     depends_on:
       - kafka
     entrypoint: >
-      sh -c "kcat -C -b kafka:29092 -t test-topic -G consumer-group-app"
+      sh -c "for topic in queue-monitor-orders queue-monitor-payments queue-monitor-shipments;
+        do
+          kcat -C -b kafka:29092 -t $$topic -o beginning &
+        done;
+        wait"
