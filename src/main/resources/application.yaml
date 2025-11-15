@@ -1,23 +1,22 @@
-spring:
-  application:
-    name: queue-alert-engine
 
 kafka:
   bootstrap-servers: localhost:9092
 
   consumer:
-    group-id: queue-monitor-group
+    group-id: consumer-group-state-monitor
     auto-offset-reset: earliest
     enable-auto-commit: true
-    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     concurrency: 3
     poll-timeout: 3000
 
   listener:
+    missing-topics-fatal: false
+    auto-startup: false
     ack-mode: record
 
   producer:
+    alert-topic: queue-monitor-alerts
+    state-topic: queue-monitor-states
     key-serializer: org.apache.kafka.common.serialization.StringSerializer
     value-serializer: org.apache.kafka.common.serialization.StringSerializer
     acks: all
@@ -25,15 +24,38 @@ kafka:
     batch-size: 16384
     linger-ms: 1
     buffer-memory: 33554432
-    topic: queue-monitor-state
 
-  alert-rules:
-    - topic: queue-monitor-orders
-      pending-threshold: 100
-    - topic: queue-monitor-payments
-      pending-threshold: 50
-    - topic: queue-monitor-shipments
-      pending-threshold: 200
+alerts:
+  repeat-alert-minutes: 5  # só dispara um alerta igual depois de X minutos
+  recovery-alerts-enabled: true
+
+  groups:
+    - group-id: consumer-group-app
+      rules:
+        - topic: queue-monitor-orders
+          partition: 0
+          lag-warning: 100
+          lag-critical: 300
+
+        - topic: queue-monitor-payments
+          partition: 0
+          lag-warning: 50
+          lag-critical: 150
+
+        - topic: queue-monitor-shipments
+          partition: 0
+          lag-warning: 150
+          lag-critical: 450
+
+    # - group-id: consumer-group-state-monitor
+    #   rules:
+    #     - topic: queue-monitor-states
+    #       partition: 0
+    #       lag-warning: 20
+    #       lag-critical: 60
+
+
+
 
 # Pensar....
 # Se o lag ficar acima do máximo permitido, dispara alerta
