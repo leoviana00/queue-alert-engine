@@ -49,6 +49,12 @@
 				<artifactId>spring-kafka</artifactId>
 		</dependency>
 
+		<dependency>
+				<groupId>org.apache.kafka</groupId>
+				<artifactId>kafka-clients</artifactId>
+				<version>3.5.0</version> <!-- compatível com seu Kafka -->
+		</dependency>
+
 		<!-- Actuator (health, metrics, Prometheus endpoint) -->
 		<dependency>
 				<groupId>org.springframework.boot</groupId>
@@ -72,6 +78,12 @@
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
 				<optional>true</optional>
+		</dependency>
+
+		<dependency>
+				<groupId>jakarta.annotation</groupId>
+				<artifactId>jakarta.annotation-api</artifactId>
+				<version>2.1.1</version>
 		</dependency>
 
 		<!-- Configuration Processor -->
