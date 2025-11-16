@@ -1,3 +1,19 @@
+# Configurações do servidor
+server:
+  port: ${SERVER_PORT:8080}
+
+# Configurações de log
+logging:
+  level:
+    root: INFO
+    io.viana.queue_alert_engine: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(%-40.40logger{39}){cyan} : %m%n"
+
+# Nome da aplicação Spring Boot
+spring:
+  application:
+    name: queue-alert-engine
 
 kafka:
   bootstrap-servers: localhost:9092
@@ -9,9 +25,13 @@ kafka:
     concurrency: 3
     poll-timeout: 3000
 
+    # Config consumer alerts
+    alerts-group-id: consumer-group-alert-monitor
+    alerts-topic: queue-monitor-alerts 
+
   listener:
     missing-topics-fatal: false
-    auto-startup: false
+    auto-startup: true  
     ack-mode: record
 
   producer:
@@ -24,6 +44,10 @@ kafka:
     batch-size: 16384
     linger-ms: 1
     buffer-memory: 33554432
+
+telegram:
+  bot-token: 
+  chat-id: 
 
 alerts:
   repeat-alert-minutes: 5  # só dispara um alerta igual depois de X minutos
