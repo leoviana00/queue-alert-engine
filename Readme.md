@@ -1,7 +1,7 @@
 <h1 align="center"> Queue Alert Engine </h1>
 
 <p align="center">
-  <img alt="Kafka" src="./image/notifier.png">
+  <img alt="LOgs" src="./image/notifier.png">
 </p>
 
 ## 📦 queue-alert-engine
