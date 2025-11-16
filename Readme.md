@@ -1,3 +1,9 @@
+<h1 align="center"> Queue Alert Engine </h1>
+
+<p align="center">
+  <img alt="Kafka" src="./image/notifier.png">
+</p>
+
 ## 📦 queue-alert-engine
 
 `queue-alert-engine` é um sistema criado em Spring Boot para realizar monitoramento de filas Kafka, detectar anomalias e possibilitar o disparo de alertas automáticos (via Telegram, Teams, e-mail etc).
