@@ -13,4 +13,4 @@
 
 ## 🧪 Testar com Kafka Local 
 
-Se quiser rodar Kafka localmente para testar cenários: [Laboraório local](./local/Readme.md)
+Se quiser rodar Kafka localmente para testar cenários: [Laboratório local](./local/Readme.md)
