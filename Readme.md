@@ -70,7 +70,6 @@ Se quiser rodar Kafka localmente para testar cenários: [Laboratório local](./l
                                                       └──────────────────────┘
 ```                
 
-
 1. `QueueMonitorScheduler` dispara a execução a cada minuto.
 2. `LagCheckerService` recebe os grupos e regras do AlertsProperties.
 3. Para cada tópico/partição:
