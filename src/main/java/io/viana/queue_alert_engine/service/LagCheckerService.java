@@ -22,10 +22,11 @@ public class LagCheckerService {
 
     private final AdminClient adminClient;
     private final QueueOffsetTracker offsetTracker;
-    private final QueueStateProducer stateProducer;
+    private final StateDispatcher stateProducer;
+    private final AlertDispatcher alertDispatcher;
 
     /**
-     * Calcula o lag para um grupo específico.
+     * Calcula o lag e dispara alertas/estados
      */
     public void checkLag(String groupId, List<AlertRule> rules) {
         if (rules == null || rules.isEmpty()) {
@@ -54,8 +55,11 @@ public class LagCheckerService {
         }
 
         long lag = Math.max(0, lastProduced - lastConsumed);
+
+        // Determina o status
         QueueStatus status = determineStatus(lag, rule.lagWarning(), rule.lagCritical());
 
+        // Cria evento de estado
         QueueStateEvent event = QueueStateEvent.builder()
                 .topic(topic)
                 .partition(partition)
@@ -67,7 +71,12 @@ public class LagCheckerService {
                 .timestamp(Instant.now().toEpochMilli())
                 .build();
 
+        // Publica estado no Kafka
         stateProducer.sendQueueState(event);
+
+        // Dispara alerta se necessário
+        alertDispatcher.dispatchAlert(groupId, rule, lag, status);
+
         log.info("📊 Estado publicado para {}-{} [group={}] → {}", topic, partition, groupId, event);
     }
 
