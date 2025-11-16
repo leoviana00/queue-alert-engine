@@ -24,7 +24,7 @@ public class TelegramNotifier {
         String chatId = telegramProperties.getChatId();
         String token = telegramProperties.getBotToken();
 
-        log.info("🔧 Telegram chatId utilizado: {}", chatId);
+        log.info("🔧 Telegram chatId: {}", chatId != null ? "OK" : "NULL");
         log.info("🔧 Telegram botToken: {}", token != null ? "OK" : "NULL");
 
         String url = "https://api.telegram.org/bot" + token + "/sendMessage";
