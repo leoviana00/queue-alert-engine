@@ -21,16 +21,7 @@ public class QueueOffsetTracker {
     private final AlertsProperties alertsProperties;
     private final AdminClient adminClient;
 
-    /**
-     * Partições monitoradas por groupId:
-     * group -> [TopicPartition...]
-     */
     private final Map<String, List<TopicPartition>> monitoredPartitions = new ConcurrentHashMap<>();
-
-    /**
-     * Offsets consumidos por groupId:
-     * group -> (TopicPartition -> offset)
-     */
     private final Map<String, Map<TopicPartition, Long>> consumedOffsets = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -50,14 +41,10 @@ public class QueueOffsetTracker {
             log.info("📝 Partições monitoradas: {}", partitions);
         });
 
-        // Atualiza todos os grupos no startup
         alertsProperties.getGroups()
                 .forEach(g -> updateConsumedOffsets(g.getGroupId()));
     }
 
-    /**
-     * Atualiza offsets consumidos do groupId informado.
-     */
     public void updateConsumedOffsets(String groupId) {
         try {
             ListConsumerGroupOffsetsResult result = adminClient.listConsumerGroupOffsets(groupId);
@@ -82,14 +69,17 @@ public class QueueOffsetTracker {
         }
     }
 
-
-    /**
-     * Obtém o último offset consumido para um topic/partition dentro do groupId.
-     */
     public long getLastConsumedOffset(String groupId, String topic, int partition) {
         Map<TopicPartition, Long> groupOffsets = consumedOffsets.get(groupId);
         if (groupOffsets == null) return 0;
 
         return groupOffsets.getOrDefault(new TopicPartition(topic, partition), 0L);
+    }
+
+    /**
+     * Getter necessário para o MonitorController.
+     */
+    public Map<String, Map<TopicPartition, Long>> getConsumedOffsets() {
+        return consumedOffsets;
     }
 }
