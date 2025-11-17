@@ -7,6 +7,7 @@
 ## 📦 queue-alert-engine
 
 `queue-alert-engine` é um sistema criado em Spring Boot para realizar monitoramento de filas Kafka, detectar anomalias e possibilitar o disparo de alertas automáticos (via Telegram, Teams, e-mail etc).
+Fornece também endpoints REST para consulta, debug, gatilho manual de monitoramentos e inspeção de offsets — todos documentados automaticamente com Swagger / OpenAPI.
 É um projeto simples, didático e extensível, ideal para estudos, PoCs e práticas modernas de DevOps/Observability.
 
 ## 📌 Planejamento
@@ -21,66 +22,10 @@
 
 Se quiser rodar Kafka localmente para testar cenários: [Laboratório local](./local/Readme.md)
 
-## Fluxo resumido
+## 🌐 Fluxo geral do sistema
 
-```console
-   ┌────────────────────────────┐
-   │    QueueMonitorScheduler   │
-   │  (executa periodicamente)  │
-   └───────────┬────────────────┘
-               │
-               ▼
-     ┌───────────────────┐
-     │ LagCheckerService │
-     │  - calcula lag    │
-     │  - cria eventos   │
-     │  - dispara alertas│
-     └─────────┬─────────┘
-               │
-       ┌───────┴──────────────────┬─────────────────────────┐
-       │                          │                         │
-       ▼                          ▼                         ▼   
-┌────────────────────┐   ┌────────────────────┐   ┌─────────────────────┐
-│ QueueOffsetTracker │   │ AlertDispatcher    │   │  StateDispatcher    │   
-└────────────────────┘   │  - envia alertas   │   │  - publica estados  │    
-                         └────────────────────┘   └─────────────────────┘
-                                  │                         │
-                                  └────────────┬────────────┘
-                                               │
-                                               ▼
-                                    ┌──────────────────────┐                ┌─────────────────────────┐  
-                                    │ KafkaMessageProducer │                │ Telegram Alert Consumer │ 
-                                    │  - envia mensagens   │                │ - consome Alerts Queue  │ 
-                                    └──────────┬───────────┘                └─────────────┬───────────┘
-                                               │                                          │
-                                  ┌──────────────────────────┐     ┌──────────────────────┘
-                                  │                          │     │                      │ 
-                                  ▼                          ▼     ▼                      ▼
-                        ┌──────────────────────┐     ┌─────────────────────┐      ┌────────────────────────────┐      
-                        │    State Queue       │     │   Alerts Queue      │      │   Alerts Service           │
-                        │- armazena os estados │     │- armazena os alertas│      │  - recebe msg do consumer  │                      
-                        └──────────────────────┘     └─────────────────────┘      │  - converte a msg em alerta│
-                                                                                  │  - chama o notifier        │
-                                                                                  └─────────────┬──────────────┘                                                         │                      
-                                                                  ┌─────────────────────────────┘
-                                                                  ▼
-                                                      ┌──────────────────────┐ 
-                                                      │   Telegram Notifier  │ 
-                                                      │- Notifica no Telegram│
-                                                      └──────────────────────┘
-```                
+- [Desenho do Fluxo do serviço](./docs/fluxo.md)
 
-1. `QueueMonitorScheduler` dispara a execução a cada minuto.
-2. `LagCheckerService` recebe os grupos e regras do AlertsProperties.
-3. Para cada tópico/partição:
-  - Consulta último offset consumido (`QueueOffsetTracker`).
-  - Consulta último offset produzido (AdminClient).
-  - Calcula lag e determina QueueStatus.
-  - Cria QueueStateEvent.
-  - Publica estado via `StateDispatcher`.
-  - Dispara alerta se status >= WARNING via `AlertDispatcher`.
-4. `AlertDispatcher` e `StateDispatcher` usam `KafkaMessageProducer` para enviar mensagens ao Kafka.
-5. Modulo de notificação
-  - `TelegramAlertConsumer` consme o topico de alertas no kafka e chama o `AlertService`.
-  - `AlertService` Processa a mensagem ea transforma em um alerta estruturado para envio ao Telegram chamando o `TelegramNotifier`.
-  - `TelegramNotifier` envia o alerta para o canal no telegram.
+## 📚 Lista dos Endpoints
+
+- [Documentação dos edpoints](./docs/Controllers.md)
