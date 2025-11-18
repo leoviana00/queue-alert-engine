@@ -4,12 +4,18 @@ import org.springframework.stereotype.Component;
 
 
 
-@Component
-@ConfigurationProperties(prefix = "kafka")
+/**
+ * Classe de configuração que mapeia todas as propriedades relacionadas ao Kafka
+ * definidas no arquivo de configuração (ex: application.yml/properties) sob o prefixo 'kafka'.
+ */
+@Component // Marca a classe como um componente Spring
+@ConfigurationProperties(prefix = "kafka") // Mapeia as propriedades que começam com 'kafka'
 public class KafkaProperties {
 
+    // Lista de servidores iniciais do Kafka (ex: "localhost:9092,kafka2:9092")
     private String bootstrapServers;
 
+    // Sub-classes para agrupar propriedades de Produtor, Consumidor e Listener
     private Producer producer = new Producer();
     private Consumer consumer = new Consumer();
     private Listener listener = new Listener();
@@ -31,6 +37,9 @@ public class KafkaProperties {
     // =====================================================================
     //                          PRODUCER PROPERTIES
     // =====================================================================
+    /**
+     * Propriedades específicas para o Produtor Kafka (envio de mensagens).
+     */
     public static class Producer {
 
         /** Tópico para alertas (ex: fila estourou threshold) */
@@ -39,16 +48,16 @@ public class KafkaProperties {
         /** Tópico para estado das filas monitoradas */
         private String stateTopic;
 
-        // Serializers
+        // Serializers: Classes usadas para converter chave e valor em bytes antes do envio
         private String keySerializer = "org.apache.kafka.common.serialization.StringSerializer";
         private String valueSerializer = "org.apache.kafka.common.serialization.StringSerializer";
 
-        // Config do produtor
-        private String acks = "all";
-        private int retries = 3;
-        private int batchSize = 16384;
-        private int lingerMs = 1;
-        private long bufferMemory = 33554432;
+        // Config do produtor: Parâmetros de performance e confiabilidade
+        private String acks = "all"; // Nível de confirmação de recebimento (all = mais seguro)
+        private int retries = 3; // Número de tentativas de reenvio
+        private int batchSize = 16384; // Tamanho máximo do lote de mensagens em bytes
+        private int lingerMs = 1; // Tempo máximo de espera antes de enviar um lote (em ms)
+        private long bufferMemory = 33554432; // Tamanho total da memória disponível para o buffer do produtor
 
         // --------------------- Getters e Setters ---------------------
 
@@ -83,13 +92,16 @@ public class KafkaProperties {
     // =====================================================================
     //                          CONSUMER PROPERTIES
     // =====================================================================
+    /**
+     * Propriedades específicas para o Consumidor Kafka (recebimento de mensagens).
+     */
     public static class Consumer {
 
-        private String groupId;
-        private String autoOffsetReset = "earliest";
-        private boolean enableAutoCommit = true;
-        private int concurrency = 3;
-        private long pollTimeout = 3000;
+        private String groupId; // O ID do grupo de consumidores ao qual esta instância pertence
+        private String autoOffsetReset = "earliest"; // Onde começar a ler se não houver offset salvo (earliest/latest)
+        private boolean enableAutoCommit = true; // Se o offset deve ser salvo automaticamente
+        private int concurrency = 3; // Número de threads/instâncias paralelas para processar mensagens
+        private long pollTimeout = 3000; // Tempo máximo de espera por novas mensagens no tópico (em ms)
 
         // --------------------- Getters e Setters ---------------------
 
@@ -112,8 +124,11 @@ public class KafkaProperties {
     // =====================================================================
     //                           LISTENER PROPERTIES
     // =====================================================================
+    /**
+     * Propriedades específicas para o Listener do Spring Kafka.
+     */
     public static class Listener {
-        private String ackMode = "record";
+        private String ackMode = "record"; // Modo de confirmação de recebimento (pode ser record, batch, manual, etc.)
 
         public String getAckMode() { return ackMode; }
         public void setAckMode(String ackMode) { this.ackMode = ackMode; }
