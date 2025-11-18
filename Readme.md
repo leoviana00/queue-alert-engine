@@ -46,7 +46,7 @@ Fornece também endpoints REST para consulta, debug, gatilho manual de monitoram
 - Consumo de Alertas (`TelegramAlertConsumer`): Um consumidor Kafka escuta o tópico de alertas.
 - Envio (`TelegramNotifier`): O alerta é desserializado e formatado. Em seguida, o serviço usa a API do Telegram para enviar a notificação formatada para o chat configurado (chatId).
 
-🛠️ **Tecnologias Chave**
+## 🛠️ Tecnologias Chave
 
 - Framework: Spring Boot (com @EnableScheduling).
 - Mensageria: Apache Kafka (usando spring-kafka e AdminClient).
