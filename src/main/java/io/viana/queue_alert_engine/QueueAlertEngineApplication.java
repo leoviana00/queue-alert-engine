@@ -4,12 +4,21 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@EnableScheduling  // 👉 necessário para ativar os schedulers
-@SpringBootApplication
+/**
+ * Classe principal da aplicação Queue Alert Engine.
+ * É o ponto de entrada para iniciar o aplicativo Spring Boot.
+ */
+@EnableScheduling // Habilita o suporte a métodos agendados (schedulers) como o QueueMonitorScheduler
+@SpringBootApplication // Define esta classe como uma aplicação Spring Boot, ativando autoconfigurações
 public class QueueAlertEngineApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(QueueAlertEngineApplication.class, args);
-	}
+  /**
+   * Método principal que inicializa e executa a aplicação Spring Boot.
+   *
+   * @param args Argumentos de linha de comando.
+   */
+  public static void main(String[] args) {
+    SpringApplication.run(QueueAlertEngineApplication.class, args);
+  }
 
 }

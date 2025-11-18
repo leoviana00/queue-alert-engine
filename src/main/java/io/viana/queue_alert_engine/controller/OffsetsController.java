@@ -17,33 +17,39 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Exposição dos offsets consumidos conhecidos pelo QueueOffsetTracker.
+ * Controlador REST para consultar os offsets consumidos (a posição de leitura)
+ * de cada grupo de consumidores que está sendo monitorado.
  */
-@RestController
-@RequestMapping("/api/offsets")
-@RequiredArgsConstructor
-@Tag(name = "Offsets", description = "Consulta offsets consumidos de cada consumer group")
+@RestController // Define que esta classe é um controlador REST
+@RequestMapping("/api/offsets") // Define o caminho base
+@RequiredArgsConstructor // Cria o construtor para injeção de dependência
+@Tag(name = "Offsets", description = "Consulta offsets consumidos de cada consumer group") // Documentação Swagger
 public class OffsetsController {
 
-    private final AlertsProperties alertsProperties;
-    private final QueueOffsetTracker queueOffsetTracker;
+    private final AlertsProperties alertsProperties; // Propriedades de configuração dos grupos
+    private final QueueOffsetTracker queueOffsetTracker; // Serviço que armazena os offsets consumidos
 
     // ------------------------------
     // LISTA OS GROUP IDS
     // ------------------------------
 
+    /**
+     * Retorna a lista dos IDs de todos os consumer groups que possuem regras configuradas.
+     */
     @Operation(
         summary = "Lista todos os consumer groups configurados",
         description = "Retorna apenas os groupIds disponíveis no AlertsProperties"
     )
     @ApiResponse(responseCode = "200", description = "Groups retornados com sucesso")
-    @GetMapping("/groups")
+    @GetMapping("/groups") // GET /api/offsets/groups
     public ResponseEntity<List<String>> listGroupIds() {
 
+        // Se não houver grupos configurados, retorna uma lista vazia (200 OK)
         if (alertsProperties.getGroups() == null || alertsProperties.getGroups().isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
 
+        // Mapeia a lista de AlertGroup para uma lista contendo apenas os IDs
         List<String> ids = alertsProperties.getGroups()
                 .stream()
                 .map(AlertGroup::getGroupId)
@@ -57,6 +63,12 @@ public class OffsetsController {
     // RETORNA OS OFFSETS DE UM GROUP
     // ------------------------------
 
+    /**
+     * Retorna o último offset consumido registrado para cada tópico/partição
+     * que pertence ao groupId especificado.
+     *
+     * @param groupId O ID do grupo de consumidores a ser consultado.
+     */
     @Operation(
         summary = "Retorna os offsets atuais consumidos para um groupId",
         description = """
@@ -66,35 +78,42 @@ public class OffsetsController {
     )
     @ApiResponse(responseCode = "200", description = "Offsets retornados com sucesso")
     @ApiResponse(responseCode = "404", description = "Grupo não encontrado")
-    @GetMapping("/groups/{groupId}")
+    @GetMapping("/groups/{groupId}") // GET /api/offsets/groups/{groupId}
     public ResponseEntity<?> getOffsetsForGroup(@PathVariable String groupId) {
 
+        // Validação inicial para configurações vazias
         if (alertsProperties.getGroups() == null) {
             return ResponseEntity.status(404).body("Nenhum grupo configurado");
         }
 
+        // Busca o grupo de alerta correspondente ao groupId fornecido
         AlertGroup group = alertsProperties.getGroups()
                 .stream()
                 .filter(g -> g.getGroupId().equalsIgnoreCase(groupId))
                 .findFirst()
                 .orElse(null);
 
+        // Se o grupo não for encontrado, retorna 404
         if (group == null) {
             return ResponseEntity.status(404).body("Group not found: " + groupId);
         }
 
-        // Ex: { "orders-0": 1234 }
+        // Mapa que armazenará o resultado: Chave="tópico-partição", Valor=offset
         Map<String, Long> result = new LinkedHashMap<>();
 
+        // Itera sobre as regras do grupo para buscar os offsets monitorados
         for (AlertRule rule : group.getRules()) {
+            // Busca o último offset consumido no serviço QueueOffsetTracker
             long offset = queueOffsetTracker.getLastConsumedOffset(
                     groupId,
                     rule.topic(),
                     rule.partition()
             );
+            // Formata a chave como "tópico-partição" e adiciona o offset
             result.put(rule.topic() + "-" + rule.partition(), offset);
         }
 
+        // Retorna o mapa de offsets com status 200 OK
         return ResponseEntity.ok(result);
     }
 }
