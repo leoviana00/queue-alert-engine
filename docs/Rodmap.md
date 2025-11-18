@@ -14,31 +14,15 @@ Este documento apresenta o roadmap planejado para o desenvolvimento do Queue Ale
 
 Estrutura completa de pacotes:
 
-- config/
-- listener/
-- service/
-- alerts/
-- scheduler/
-- domain/
-- exception/
-- controller/ (futuro)
+- `config`: Configurações de Kafka e beans
+- `listener`: Consumo Kafka
+- `service`: Regras de negócio e monitoramento
+- `alerts`: Integrações de envio
+- `domain`: Entidades e modelos do motor de alerta
+- `controller`: Endpoints REST futuros
+- `notifier`: Enviar os alertas ao Telegram
+- `scheduler`: Agendamento de verificação dos lags
 
-
-Arquivos de configuração:
-
-- application.yaml
-- application-local.yaml
-- application-prod.yaml
-
-Configurações iniciais do Kafka:
-
-- KafkaProducerConfig.java
-- KafkaConsumerConfig.java
-- KafkaTopicConfig.java
-
-Classe de propriedades:
-
-- AppProperties.java via @ConfigurationProperties
 
 ## 🟩 Fase 2 — Definição do Domínio e Contratos
 
@@ -49,8 +33,11 @@ Classe de propriedades:
 ✅ Entregas:
 
 - Modelos:
+  - `AlertGroup`
+  - `QueueAlert`
   - `QueueStatus`
-  - `QueueMessage`
+  - `QueueStateEvent`
+  - `TelegramMessage`
   - `AlertRule`
 - Interface de alertas:
   - `AlertService`
@@ -65,8 +52,7 @@ Fazer a aplicação consumir mensagens reais do tópico Kafka.
 
 - Listener Kafka:
   - QueueEventListener
-- Teste manual via Kafka local (docker-compose)
-- Fluxo: Kafka → Listener → Log básico
+  - TelegramAlertConsumer
 
 ## 🟧 Fase 4 — Processamento e Regras de Negócio
 
@@ -76,11 +62,9 @@ Avaliar mensagens e decidir quando emitir alertas.
 
 ✅ Entregas:
 
-- Serviço:
-  - MessageProcessorService
-  - Validação e regras
 - Serviço de monitoramento:
-  - QueueMonitorService
+  - LagCheckService
+  - QueueOffsetTracker
 - Lógica:
   - Thresholds configuráveis
   - Aplicação de AlertRule
@@ -94,11 +78,10 @@ Avaliar mensagens e decidir quando emitir alertas.
 ✅ Entregas:
 
 - Implementações:
-  - TelegramAlertService
-  - TeamsAlertService
-
-- Tratamento de exceções:
-  - AlertSendException
+  - AlertService
+  - AlertDispatcher
+  - StateDispatcher
+  - TelegramNotifier
 
 - Logs estruturados de envio:
   - Sucesso
@@ -124,7 +107,7 @@ Avaliar mensagens e decidir quando emitir alertas.
   - `/alerts/test`
   - `/queues/status`
 
-## 🟫 Fase 7 — Qualidade, Testes e Confiabilidade
+## 🟫 Fase 7 — Qualidade, Testes e Confiabilidade ~ TO DO
 
 🎯 Objetivo:
 
@@ -141,7 +124,7 @@ Avaliar mensagens e decidir quando emitir alertas.
 - Handler global:
   - GlobalExceptionHandler via @ControllerAdvice
 
-## ⬛ Fase 8 — Observabilidade e Monitoramento
+## ⬛ Fase 8 — Observabilidade e Monitoramento ~ TO DO
 
 🎯 Objetivo:
 
@@ -156,7 +139,7 @@ Avaliar mensagens e decidir quando emitir alertas.
   - processing_time
 - Dashboard Grafana (futuro)
 
-## ⬜ Fase 9 — Empacotamento e Deploy
+## ⬜ Fase 9 — Empacotamento e Deploy ~ TO DO
 
 🎯 Objetivo:
 
@@ -172,7 +155,7 @@ Entregar a aplicação para execução real.
   - Tokens do Telegram
   - Tokens do Teams
 
-## 🟦 Fase 10 — Evoluções Futuras (Roadmap Pós-MVP)
+## 🟦 Fase 10 — Evoluções Futuras (Roadmap Pós-MVP) ~ TO DO
 
 🎯 Objetivo:
 
@@ -191,12 +174,12 @@ Entregar a aplicação para execução real.
 ## ✔️ Resumo Geral 
 
 - Fase	Entrega Principal
-  - [ ] 1	Estrutura + Configurações
-  - [ ] 2	Modelos + Contratos
-  - [ ] 3	Kafka funcionando
-  - [ ] 4	Regras de negócio
-  - [ ] 5	Alertas reais
-  - [ ] 6	Scheduler + API
+  - [x] 1	Estrutura + Configurações
+  - [x] 2	Modelos + Contratos
+  - [x] x	Kafka funcionando
+  - [x] 4	Regras de negócio
+  - [x] 5	Alertas reais
+  - [x] 6	Scheduler + API
   - [ ] 7	Testes + Exceções
   - [ ] 8	Observabilidade
   - [ ] 9	Deploy

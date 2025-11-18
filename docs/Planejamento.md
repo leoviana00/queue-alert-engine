@@ -36,10 +36,6 @@ Monitorar tópicos Kafka em tempo real, avaliar o volume e o padrão de consumo 
 
 - Envia alertas diretamente para um chat ou grupo via Bot API.
 
-✔️ Microsoft Teams
-
-- Integração com Webhook para notificações corporativas.
-
 ✔️ Fácil expansão para outros canais:
 
 - Slack
@@ -59,8 +55,10 @@ Arquitetura limpa dividida em camadas:
   - `alerts`: Integrações de envio
   - `domain`: Entidades e modelos do motor de alerta
   - `controller`: Endpoints REST futuros
+  - `notifier`: Enviar os alertas ao Telegram
+  - `scheduler`: Agendamento de verificação dos lags
 
-## 🛠️ Funcionalidades Planejadas / Roadmap
+## 🛠️ Funcionalidades Planejadas inicialmente / Roadmap
 
 🟦 1. API REST de Observabilidade
 
@@ -68,7 +66,6 @@ Arquitetura limpa dividida em camadas:
   - GET /queues/status
   - GET /queues/{topic}/metrics
   - POST /alerts/test
-- Permitirá integrar com dashboards e UIs.
 
 
 🟦 2. Configuração Dinâmica de Regras
@@ -79,28 +76,21 @@ Arquitetura limpa dividida em camadas:
   - padrão de mensagens,
   - quantidade mínima de consumo por minuto.
 
-🟦 3. Painel Web (UI)
-
-  - Interface para:
-  - visualizar a saúde das filas,
-  - ativar/desativar alertas,
-  - ajustar parâmetros sem mexer no código.
-
-🟦 4. Armazenamento de Métricas
+🟦 3. Armazenamento de Métricas
 
 - Suporte para:
   - Prometheus
   - Grafana
   - OpenTelemetry
 
-🟦 5. Múltiplos Brokers Kafka
+🟦 4. Múltiplos Brokers Kafka
 
 - Permitir monitorar vários clusters simultaneamente:
   - Produção
   - Homologação
   - Dev
 
-🟦 6. Mecanismo de Anomalia (Machine Learning Light)
+🟦 5. Mecanismo de Anomalia (Machine Learning Light)
 
 - Exemplo:
   - detectar picos atípicos,
@@ -119,7 +109,7 @@ Arquitetura limpa dividida em camadas:
 - Lombok
 - SLF4J / Logback
 
-## 🌐 Fluxo Geral do Sistema
+## 🌐 Fluxo Geral do Sistema - Pensado inicialmete
 
 ```console
 Kafka Topic -> Listener -> Processor -> Monitor -> AlertService -> Telegram/Teams
@@ -128,7 +118,7 @@ Kafka Topic -> Listener -> Processor -> Monitor -> AlertService -> Telegram/Team
 > NOTE!
 > O projeto funciona como um engine independente, que consome mensagens, monitora o comportamento das filas e envia alertas proativamente.
 
-## ✅ Estrutura pensada por hora
+## ✅ Estrutura pensada iicialmente
 
 ```console
 src/
@@ -147,7 +137,7 @@ src/
      │        │     └── TeamsAlertService.java
      │        │
      │        ├── listener/               → Consumidores Kafka
-     │        │     └── QueueEventListener.java
+     │        │     └── QueueListener.java
      │        │
      │        ├── service/                → Regras de negócio e monitoramento
      │        │     ├── QueueMonitorService.java
