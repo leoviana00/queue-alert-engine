@@ -55,10 +55,6 @@ Fornece também endpoints REST para consulta, debug, gatilho manual de monitoram
 > NOTE!
 > Em resumo, o projeto é uma solução autônoma e customizável para garantir a observabilidade da performance de consumo em ambientes Kafka.
 
-## 📌 Planejamento
-
-- [Planejamento inicial do projeto](./docs/Planejamento.md)
-
 ## 🚀 Roadmap
 
 - [Roadmap de execução do prjeto](./docs/Rodmap.md)
